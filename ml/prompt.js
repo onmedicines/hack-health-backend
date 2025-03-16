@@ -1,4 +1,20 @@
 // prompt engineering
+/**
+ * Example patientData: 
+ * {
+        "age": 45,
+        "weight": 85,
+        "height": 175,
+        "heartRate": 78,
+        "sysBP": 140,
+        "diaBP": 90,
+        "cholesterol": 210,
+        "glucose": 110,
+        "smoking": true,
+        "medicalHistory": "Hypertension, Diabetes"
+    }
+ */
+
 export const formattedPrompt = (patientData) =>
   `
    You are Mistral, a medical AI trained to analyze patient health data. Provide only medical insights.
