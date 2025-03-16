@@ -1,32 +1,146 @@
 import e from "express";
+import isEmail from "validator/lib/isEmail.js";
 import { formattedPrompt } from "./ml/prompt.js";
 import supabase from "./supabase/supabaseClient.js";
 import cors from "cors";
 import axios from "axios";
 
-// const cors = require("cors");
-// const axios = require("axios");
 const app = e();
 
 app.use(e.json());
 app.use(cors());
 
-app.post("/user-data", async (req, res) => {
-  const { name, email, dob, sex } = req.body;
-  if (!name || !email || !dob || !sex) {
-    return res.status(400).json("");
+// signup
+app.post("/signup", async (req, res) => {
+  const { email, password, name, dob, sex, height, weight, medicalHistory } = req.body;
+
+  // error checking
+  if (!email || !name || !dob || !password || !sex) {
+    return res.status(400).json("Please provide all fields.");
+  }
+  if (!isEmail(email)) {
+    return res.status(400).json("Email invalid.");
   }
 
-  const { data, error } = await supabase.from("users").insert([{ name, email, dob, sex }]).select();
-  if (error) {
-    console.log(error);
-    return res.status(400).json(err);
-  }
-  if (data) {
-    console.log(data);
-    return res.status(200).json(data);
-  }
+  const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+  if (authError) return res.status(400).json({ error: authError.message });
+
+  const { error: dbError } = await supabase.from("users").insert([{ id: authData.user?.id, name, dob, sex, height, weight, medical_history: medicalHistory }]);
+  if (dbError) return res.status(400).json({ error: dbError.message });
+
+  res.status(201).json({ message: "User registered successfully", token: authData.session?.access_token });
 });
+
+// resend email confirmation mail
+app.post("/resend-confirmation-email", async (req, res) => {
+  const { email } = req.body;
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+  });
+
+  if (error) {
+    return res.status(500).json(error.message);
+  }
+
+  return res.status(200).json("Confirmation link resent.");
+});
+
+// login
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json("Please provide all fields");
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(200).json({ message: "Login successful", token: data.session?.access_token });
+});
+
+// logout
+app.get("/logout", async (req, res) => {
+  let { error } = await supabase.auth.signOut();
+  if (error) {
+    return res.status(500).json("Could not logout, please try again.");
+  }
+
+  return res.status(200).json("Successfully logged out.");
+});
+
+// get user data
+app.get("/user", async (req, res) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return res.status(400).json("No user logged in.");
+  }
+
+  let { data: userData, error: userError } = await supabase.from("users").select().eq("id", user.id);
+  if (userError) {
+    return res.status(500).json("Could not fetch user details");
+  }
+
+  return res.status(200).json(userData);
+});
+
+// // checkup
+// app.post("/get-checkup", async (req, res) => {
+//   const { sysBP, diaBP, heartRate, cholestrol, glucose, smoking, medicalHistory } = req.body;
+//   return;
+// });
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 // api end-point for anaylzing health data
 app.post("/analyze-health", async (req, res) => {
