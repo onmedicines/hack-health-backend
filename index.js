@@ -96,7 +96,7 @@ app.get("/user", async (req, res) => {
 
 // checkup
 app.post("/get-checkup", async (req, res) => {
-  const { sysBP, diaBP, heartRate, cholesterol, glucose, smoking, medicalHistory, height, weight } = req.body;
+  let { sysBP, diaBP, heartRate, cholesterol, glucose, smoking, medicalHistory, height, weight } = req.body;
   if (!sysBP || !diaBP || !heartRate || !cholesterol || !glucose || !smoking) {
     return res.status(400).json("Please provide all fields");
   }
@@ -127,13 +127,22 @@ app.post("/get-checkup", async (req, res) => {
   }
 
   const age = calculateAge(userData[0].dob);
+  const userID = userData[0].id;
 
   const analysis = await analyseHealth({ age, weight, height, heartRate, sysBP, diaBP, cholesterol, glucose, smoking });
   if (!analysis) {
     return res.status(500).json("Could not produce and analysis.");
   }
 
-  return res.status(200).json(analysis);
+  // add the details of user at this point of time to the database
+  // if cannot add, respond nevertheless
+  const { error: checkupsError } = await supabase.from("checkups").insert([{ id: userID, age, weight, height, heart_rate: heartRate, sys_bp: sysBP, dia_bp: diaBP, cholesterol, glucose, smoking }]);
+  let responseMessage = "Successfully uploaded data of this checkup";
+  if (checkupsError) {
+    responseMessage = "Could not upload data of this checkup";
+  }
+
+  return res.status(200).json({ analysis, responseMessage });
 });
 
 // utility functions
