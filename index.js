@@ -1,10 +1,32 @@
-import { formattedPrompt } from "./ml/prompt";
+import e from "express";
+import { formattedPrompt } from "./ml/prompt.js";
+import supabase from "./supabase/supabaseClient.js";
+import cors from "cors";
+import axios from "axios";
 
-const cors = require("cors");
-const axios = require("axios");
+// const cors = require("cors");
+// const axios = require("axios");
+const app = e();
 
-app.use(express.json());
+app.use(e.json());
 app.use(cors());
+
+app.post("/user-data", async (req, res) => {
+  const { name, email, dob, sex } = req.body;
+  if (!name || !email || !dob || !sex) {
+    return res.status(400).json("");
+  }
+
+  const { data, error } = await supabase.from("users").insert([{ name, email, dob, sex }]).select();
+  if (error) {
+    console.log(error);
+    return res.status(400).json(err);
+  }
+  if (data) {
+    console.log(data);
+    return res.status(200).json(data);
+  }
+});
 
 // api end-point for anaylzing health data
 app.post("/analyze-health", async (req, res) => {
