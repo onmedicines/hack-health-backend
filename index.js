@@ -145,6 +145,23 @@ app.post("/get-checkup", async (req, res) => {
   return res.status(200).json({ analysis, responseMessage });
 });
 
+// get checkup history for users
+app.get("/user-checkup-history", async (req, res) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return res.status(400).json("No user logged in.");
+  }
+
+  let { data: checkups, error: checkupsError } = await supabase.from("checkups").select("*").eq("id", user.id);
+  if (checkupsError) {
+    return res.status(500).json("Could not get checkup history.");
+  }
+
+  return res.status(200).json(checkups);
+});
+
 // utility functions
 function calculateAge(dob) {
   const birthDate = new Date(dob); // Convert DOB to Date object
