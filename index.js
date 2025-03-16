@@ -128,7 +128,7 @@ app.post("/get-checkup", async (req, res) => {
 
   const age = calculateAge(userData[0].dob);
 
-  const analysis = analyseHealth({ age, weight, height, heartRate, sysBP, diaBP, cholesterol, glucose, smoking });
+  const analysis = await analyseHealth({ age, weight, height, heartRate, sysBP, diaBP, cholesterol, glucose, smoking });
   if (!analysis) {
     return res.status(500).json("Could not produce and analysis.");
   }
